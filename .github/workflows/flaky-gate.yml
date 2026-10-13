@@ -1,0 +1,45 @@
+name: Flaky Gate (flaky-hunter)
+
+# 把 flaky-hunter 挂成合并门禁（报告模式）：PR 一来，三探头扫描整个测试套装
+# （默认序 / 反向序 / 每个测试文件同进程重复 20 遍），单独跑验证定性后把判定
+# 写进 Job Summary。检出 flaky 不会让本 job 变红 —— 先 shadow 观察误报率，
+# 数字站住了再转硬拦截（gate 的 --strict）。
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  flaky-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install flaky-hunter from GitHub
+        run: pip install git+https://github.com/vito233/flaky-hunter.git
+
+      - name: Run flaky gate (report mode)
+        run: |
+          python -m flaky_hunter.gate \
+            --src . --deps ./.fh-deps --testdir tests \
+            --count 20 --per-test-timeout 30 \
+            --image docker.io/library/python:3.10-slim \
+            --pip-mirror https://pypi.org/simple \
+            --no-volumes \
+            --json-out flaky-gate.json --md-out flaky-gate.md
+
+      - name: Append verdict to job summary
+        if: always()
+        run: cat flaky-gate.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flaky-gate-report
+          path: |
+            flaky-gate.json
+            flaky-gate.md
