@@ -432,3 +432,5 @@ Html.image allow to align images, too. For example you can run: ``mdFile.new_par
 [im]: ./doc/source/images/photo-of-snow-covered-trees.jpg
 [italics]: https://github.com/didix21/mdutils
 [md]: https://github.com/didix21/mdutils
+
+<!-- flaky-gate demo PR: harmless docs change, gate should PASS -->
