@@ -1,9 +1,9 @@
 name: Flaky Gate (flaky-hunter)
 
-# 把 flaky-hunter 挂成合并门禁（报告模式）：PR 一来，三探头扫描整个测试套装
-# （默认序 / 反向序 / 每个测试文件同进程重复 20 遍），单独跑验证定性后把判定
-# 写进 Job Summary。检出 flaky 不会让本 job 变红 —— 先 shadow 观察误报率，
-# 数字站住了再转硬拦截（gate 的 --strict）。
+# 硬拦截档演示（第二版）：与 PR #2（demo-bad-pattern，报告档绿）注入的是
+# 同一段坏模式代码，唯一差别 = 门禁加 --strict —— 检出 flaky → exit 1，
+# 本 job 变红，合并被拦。双档对照：报告档 = 贴告示（shadow 观察误报率），
+# 硬拦截档 = 拦下。判定报告与工件在 job 失败时照常上传（if: always()）。
 on:
   pull_request:
   workflow_dispatch:
@@ -21,14 +21,14 @@ jobs:
       - name: Install flaky-hunter from GitHub
         run: pip install git+https://github.com/vito233/flaky-hunter.git
 
-      - name: Run flaky gate (report mode)
+      - name: Run flaky gate (strict mode)
         run: |
           python -m flaky_hunter.gate \
             --src . --deps ./.fh-deps --testdir tests \
             --count 20 --per-test-timeout 30 \
             --image docker.io/library/python:3.10-slim \
             --pip-mirror https://pypi.org/simple \
-            --no-volumes \
+            --no-volumes --strict \
             --json-out flaky-gate.json --md-out flaky-gate.md
 
       - name: Append verdict to job summary
